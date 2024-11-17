@@ -1,0 +1,22 @@
+FROM python:3.9-slim
+
+# Metadata labels
+LABEL org.opencontainers.image.source="https://github.com/plaexmaster/blackhole"
+LABEL org.opencontainers.image.description="Docker image for the blackhole service"
+
+ARG SERVICE_NAME=blackhole
+
+# Set working directory
+WORKDIR /app
+
+# Copy only the files needed for pip install to maximize cache utilization
+COPY requirements.txt ./
+
+# Install Python dependencies
+RUN grep -E "#.*($SERVICE_NAME|all)" requirements.txt | awk '{print $0}' > service_requirements.txt && \
+    pip install --no-cache-dir -r service_requirements.txt
+
+# Copy the rest of the application
+COPY . .
+
+CMD ["python", "blackhole_watcher.py"]

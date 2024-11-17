@@ -1,8 +1,6 @@
 import time
 import requests
 from typing import Callable, Optional
-from shared.discord import discordError, discordUpdate
-
 
 def retryRequest(
     requestFunc: Callable[[], requests.Response], 
@@ -35,11 +33,7 @@ def retryRequest(
                 ]
                 for line in message:
                     print(line)
-                if attempt == retries:
-                    discordError("Request Failed", "\n".join(message))
-                else:
-                    update_message = message + [f"Retrying in {delay} seconds..."]
-                    discordUpdate("Retrying Request", "\n".join(update_message))
+                if attempt < retries:
                     print(f"Retrying in {delay} seconds...")
                     time.sleep(delay)
         except requests.RequestException as e:
@@ -49,11 +43,7 @@ def retryRequest(
             ]
             for line in message:
                 print(line)
-            if attempt == retries:
-                discordError("Request Exception", "\n".join(message))
-            else:
-                update_message = message + [f"Retrying in {delay} seconds..."]
-                discordUpdate("Retrying Request", "\n".join(update_message))
+            if attempt < retries:
                 print(f"Retrying in {delay} seconds...")
                 time.sleep(delay)
     

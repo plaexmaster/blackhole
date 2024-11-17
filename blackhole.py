@@ -9,10 +9,9 @@ import asyncio
 import uuid
 from datetime import datetime
 # import urllib
-from shared.discord import discordError, discordUpdate
-from shared.shared import realdebrid, torbox, blackhole, plex, checkRequiredEnvs
+from shared.shared import realdebrid, blackhole, checkRequiredEnvs
 from shared.arr import Arr, Radarr, Sonarr
-from shared.debrid import TorrentBase, RealDebridTorrent, RealDebridMagnet, TorboxTorrent, TorboxMagnet
+from shared.debrid import TorrentBase, RealDebridTorrent, RealDebridMagnet
 
 _print = print
 
@@ -125,15 +124,12 @@ def copyFiles(file: TorrentFileInfo, folderPathMountTorrent, arr: Arr):
             time.sleep(1)
             if count == 180:
                 print('copyCount > 180')
-                discordError(f"{file.fileInfo.filenameWithoutExt} copy attempt acount > 180", "Shortcut has not finished importing yet")
 
     except:
         e = traceback.format_exc()
 
         print(f"Error copying files for {file.fileInfo.filenameWithoutExt}")
         print(e)
-
-        discordError(f"Error copying files for {file.fileInfo.filenameWithoutExt}", e)
 
 import signal
 
@@ -226,7 +222,6 @@ async def processTorrent(torrent: TorrentBase, file: TorrentFileInfo, arr: Arr) 
                             # refreshRequest = requests.get(refreshEndpoint, headers={'Accept': 'application/json'})
                     
                     print('Refreshed')
-                    discordUpdate(f"Sucessfully processed {file.fileInfo.filenameWithoutExt}", f"Now available for immediate consumption! existsCount: {existsCount}")
                     
                     # refreshEndpoint = f"{plex['serverHost']}/library/sections/{plex['serverMovieLibraryId'] if isRadarr else plex['serverTvShowLibraryId']}/refresh?X-Plex-Token={plex['serverApiKey']}"
                     # cancelRefreshRequest = requests.delete(refreshEndpoint, headers={'Accept': 'application/json'})
@@ -238,7 +233,6 @@ async def processTorrent(torrent: TorrentBase, file: TorrentFileInfo, arr: Arr) 
                 
                 if existsCount >= blackhole['rdMountRefreshSeconds'] + 1:
                     print(f"Torrent folder not found in filesystem: {file.fileInfo.filenameWithoutExt}")
-                    discordError("Torrent folder not found in filesystem", file.fileInfo.filenameWithoutExt)
 
                     return False
 
@@ -246,7 +240,6 @@ async def processTorrent(torrent: TorrentBase, file: TorrentFileInfo, arr: Arr) 
     
         if torrent.failIfNotCached and count >= blackhole['waitForTorrentTimeout']:
             print(f"Torrent timeout: {file.fileInfo.filenameWithoutExt} - {status}")
-            discordError("Torrent timeout", f"{file.fileInfo.filenameWithoutExt} - {status}")
 
             return False
 
@@ -268,10 +261,8 @@ async def processFile(file: TorrentFileInfo, arr: Arr, isRadarr):
                 loop = asyncio.get_event_loop()
                 try:
                     await asyncio.wait_for(loop.run_in_executor(executor, read_file, path), timeout=timeout)
-                    discordUpdate('good')
                     return True
                 except Exception as e:
-                    discordError('error', e)
                     return False
                 finally:
                     executor.shutdown(wait=False)
@@ -286,8 +277,6 @@ async def processFile(file: TorrentFileInfo, arr: Arr, isRadarr):
             torrentConstructors = []
             if realdebrid['enabled']:
                 torrentConstructors.append(RealDebridTorrent if file.torrentInfo.isDotTorrentFile else RealDebridMagnet)
-            if torbox['enabled']:
-                torrentConstructors.append(TorboxTorrent if file.torrentInfo.isDotTorrentFile else TorboxMagnet)
 
             onlyLargestFile = isRadarr or bool(re.search(r'S[\d]{2}E[\d]{2}(?![\W_][\d]{2}[\W_])', file.fileInfo.filename))
             if not blackhole['failIfNotCached']:
@@ -313,8 +302,6 @@ async def processFile(file: TorrentFileInfo, arr: Arr, isRadarr):
         print(f"Error processing {file.fileInfo.filenameWithoutExt}")
         print(e)
 
-        discordError(f"Error processing {file.fileInfo.filenameWithoutExt}", e)
-
 async def fail(torrent: TorrentBase, arr: Arr):
     _print = globals()['print']
 
@@ -329,7 +316,6 @@ async def fail(torrent: TorrentBase, arr: Arr):
     if not items:
         message = "No history items found to mark as failed. Arr will not attempt to grab an alternative."
         print(message)
-        discordError(message, torrent.file.fileInfo.filenameWithoutExt)
     else:
         # TODO: See if we can fail without blacklisting as cached items constantly changes
         failTasks = [asyncio.to_thread(arr.failHistoryItem, item.id) for item in items]
@@ -371,7 +357,6 @@ async def on_created(isRadarr):
         print(f"Error processing")
         print(e)
 
-        discordError(f"Error processing", e)
     print("Exit 'on_created'")
 
 if __name__ == "__main__":

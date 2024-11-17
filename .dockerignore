@@ -2,7 +2,5 @@
 .env.template
 .gitignore
 docker-compose.yml
-Dockerfile.*
+Dockerfile
 README.md
-shared/tokens.json
-sockets/
